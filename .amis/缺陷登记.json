@@ -86,11 +86,11 @@
                       "name": "discoverer",
                       "label": "发现人",
                       "required": true,
-                      "value": "黄镇海/803718",
+                      "value": "XXX/80123456",
                       "options": [
                         {
-                          "label": "黄镇海/803718",
-                          "value": "黄镇海/803718"
+                          "label": "XXX/80123456",
+                          "value": "XXX/80123456"
                         }
                       ],
                       "id": "u:3c96812c8bfe"
