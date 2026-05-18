@@ -57,7 +57,8 @@ function extractData(body: unknown, path: string): unknown {
     if (!path) return body;
     const normalized = path.startsWith('$') ? path : `$.${path}`;
     const results = jsonPath(body, normalized);
-    return results.length > 0 ? results[0] : undefined;
+    if (results.length === 0) return undefined;
+    return results.length === 1 ? results[0] : results;
 }
 
 function transformResponse(
