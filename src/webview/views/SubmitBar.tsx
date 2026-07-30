@@ -23,7 +23,7 @@ const ResponseModal: React.FC<{ result: HttpResponseResult; onClose: () => void 
     <div className="jr-response-dialog" onClick={(e) => e.stopPropagation()}>
       <div className="jr-response-header">
         <h3 className="jr-response-title">HTTP Response</h3>
-        <button type="button" className="jr-response-close" onClick={onClose} title="Close">×</button>
+        <button type="button" className="jr-response-close" onClick={onClose} title="Close">*</button>
       </div>
       <pre className="jr-response-body">{formatResponse(result)}</pre>
       <div className="jr-response-footer">
@@ -56,6 +56,10 @@ const ResponseModal: React.FC<{ result: HttpResponseResult; onClose: () => void 
  *   - "$tokenResponse" 特殊 key：其值为 JSONPath，解析后合并字段到 headers
  *   - "$.xxx" JSONPath 值：从 token 响应中提取指定字段
  * SubmitConfig 所有字段见下。type 为 "reset" 时是客户端重置按钮，不发请求。
+ *
+ * SubmitConfig.body 中任意层级对象可写 "$formConfig": true，将该对象替换为表单字段值：
+ *   { "requestBody": { "$formConfig": true } }  → requestBody 为全部表单 key/value
+ *   { "$formConfig": true, "extra": "x" }        → 表单值与 extra 合并（顶层或嵌套均支持）
  */
 export interface SubmitConfig {
   /** "http"（默认）或 "reset" */
@@ -300,19 +304,35 @@ function extractFormConfigValues(data: unknown): Record<string, unknown> {
   return values;
 }
 
+function isFormConfigMarker(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === 'object' && !Array.isArray(v) && (v as Record<string, unknown>).$formConfig === true;
+}
+
+/** 递归展开 body 中任意层级的 { "$formConfig": true, ...rest } */
+export function applyFormConfigMarkers(value: unknown, data: unknown): unknown {
+  if (isFormConfigMarker(value)) {
+    const { $formConfig: _drop, ...rest } = value;
+    return { ...extractFormConfigValues(data), ...rest };
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => applyFormConfigMarkers(item, data));
+  }
+  if (value && typeof value === 'object' && !isFilePlaceholder(value)) {
+    const obj = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      out[k] = applyFormConfigMarkers(v, data);
+    }
+    return out;
+  }
+  return value;
+}
+
 /** 构造 body：body > bodyPath > 全体（剔除 __form / formConfig / formData） */
 export function buildSubmitBody(data: unknown, cfg: SubmitConfig): unknown {
   if (cfg.body !== undefined) {
     const interpolated = interpolate(cfg.body, data);
-    if (interpolated && typeof interpolated === 'object' && !Array.isArray(interpolated)) {
-      const body = interpolated as Record<string, unknown>;
-      if (body.$formConfig === true) {
-        const { $formConfig: _drop, ...rest } = body;
-        const formValues = extractFormConfigValues(data);
-        return { ...formValues, ...rest };
-      }
-    }
-    return interpolated;
+    return applyFormConfigMarkers(interpolated, data);
   }
   if (cfg.bodyPath) return getByPath(makeScope(data), cfg.bodyPath);
   if (data && typeof data === 'object' && !Array.isArray(data)) {

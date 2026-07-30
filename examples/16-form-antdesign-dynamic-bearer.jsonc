@@ -7,7 +7,7 @@
         "headers": { "X-Auth-Source": "json-render" },
         "body": {
           "username": "1",
-          "password": "2",
+          "customKey": "2",
           "grant_type": "password"
         },
         "timeoutMs": 10000
@@ -26,7 +26,7 @@
           "sign-token": "$.json",
           // 业务自定义 header（不会被 $formAuthHeader 覆盖）
           "X-Request-Source": "form-submit",
-          "password": "overlap"
+          "custom-header": "overlap"
         },
         "body": {
           "$formConfig": true,
