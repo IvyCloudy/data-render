@@ -93,18 +93,17 @@ export interface FormAuth {
 
 export interface FormMeta {
   auth?: FormAuth;
-  submit?: SubmitConfig | SubmitConfig[];
+  submit?: SubmitConfig[];
 }
 
-/** 读取提交配置；同时支持旧的对象与新的数组；非法配置返回 null */
+/** 只接受现代数组协议；不再把历史 submit 对象强制转换成数组。 */
 export function readSubmitConfig(data: unknown): SubmitConfig[] | null {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
   const meta = (data as any)[FORM_META_KEY] as FormMeta | undefined;
   if (!meta || typeof meta !== 'object') return null;
   const raw = meta.submit;
-  if (!raw) return null;
-  const list = Array.isArray(raw) ? raw : [raw];
-  const valid = list.filter((x) => {
+  if (!Array.isArray(raw)) return null;
+  const valid = raw.filter((x) => {
     if (!x || typeof x !== 'object') return false;
     if (x.type === 'reset') return true;
     return typeof x.url === 'string' && x.url.length > 0;
@@ -255,7 +254,7 @@ function makeScope(data: unknown): Record<string, unknown> {
   if (obj[FORM_DATA_KEY] && typeof obj[FORM_DATA_KEY] === 'object' && !Array.isArray(obj[FORM_DATA_KEY])) {
     return { ...(obj as Record<string, unknown>), ...(obj[FORM_DATA_KEY] as Record<string, unknown>) };
   }
-  return obj;
+  return {};
 }
 
 /** `{ "$file": "/abs/path.png", "field": "avatar", "filename": "x.png", "contentType": "image/png" }` */
@@ -288,20 +287,7 @@ export function appendQuery(url: string, qs: string): string {
 }
 
 function extractFormConfigValues(data: unknown): Record<string, unknown> {
-  const formData = getFormData(data);
-  if (Object.keys(formData).length > 0) return formData;
-  if (!data || typeof data !== 'object' || Array.isArray(data)) return {};
-  const config = (data as any)[FORM_CONFIG_KEY];
-  if (!Array.isArray(config)) return {};
-  const values: Record<string, unknown> = {};
-  for (const item of config) {
-    if (item && typeof item === 'object' && item.keyName) {
-      if (item.keyValue !== undefined) {
-        values[item.keyName] = item.keyValue;
-      }
-    }
-  }
-  return values;
+  return getFormData(data);
 }
 
 function isFormConfigMarker(v: unknown): v is Record<string, unknown> {
@@ -328,25 +314,22 @@ export function applyFormConfigMarkers(value: unknown, data: unknown): unknown {
   return value;
 }
 
-/** 构造 body：body > bodyPath > 全体（剔除 __form / formConfig / formData） */
+/** 构造 body：body > bodyPath > formData。 */
 export function buildSubmitBody(data: unknown, cfg: SubmitConfig): unknown {
   if (cfg.body !== undefined) {
     const interpolated = interpolate(cfg.body, data);
     return applyFormConfigMarkers(interpolated, data);
   }
   if (cfg.bodyPath) return getByPath(makeScope(data), cfg.bodyPath);
-  if (data && typeof data === 'object' && !Array.isArray(data)) {
-    const { [FORM_META_KEY]: _, [FORM_CONFIG_KEY]: __, [FORM_DATA_KEY]: ___, ...rest } = data as Record<string, unknown>;
-    return rest;
-  }
-  return data;
+  return getFormData(data);
 }
 
 function validateRequired(data: unknown, paths: string[] | undefined): string[] {
   if (!paths || !paths.length) return [];
   const missing: string[] = [];
+  const scope = makeScope(data);
   for (const p of paths) {
-    const v = getByPath(data, p);
+    const v = getByPath(scope, p);
     if (v === undefined || v === null || v === '') missing.push(p);
   }
   return missing;

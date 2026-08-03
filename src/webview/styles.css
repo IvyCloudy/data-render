@@ -852,3 +852,88 @@ mark.jr-hit {
 .jr-confirm-ok:hover {
   background: var(--vscode-button-hoverBackground, var(--vscode-button-background));
 }
+.dynamic-form-shell {
+  width: 100%;
+}
+
+.dynamic-form-content {
+  padding: 16px;
+}
+
+.dynamic-form-template-alert {
+  margin: 16px 16px 0;
+  white-space: pre-wrap;
+}
+
+.dynamic-form-grid,
+.dynamic-form-list {
+  width: 100%;
+}
+
+.dynamic-form-container {
+  margin-bottom: 12px;
+}
+
+.dynamic-form-help {
+  margin-left: 5px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.dynamic-form-source-error {
+  color: var(--vscode-editorWarning-foreground);
+}
+
+.dynamic-http-upload-item {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--vscode-list-hoverBackground);
+}
+
+.dynamic-http-upload-paperclip {
+  color: var(--vscode-descriptionForeground);
+  font-size: 16px;
+}
+
+.dynamic-http-upload-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dynamic-http-upload-loading {
+  color: var(--vscode-progressBar-background);
+}
+
+.dynamic-http-upload-result {
+  color: var(--vscode-testing-iconPassed, #52c41a);
+}
+
+.dynamic-http-upload-item-error .dynamic-http-upload-result {
+  color: var(--vscode-testing-iconFailed, #ff4d4f);
+}
+
+.dynamic-http-upload-remove {
+  color: var(--vscode-descriptionForeground);
+}
+
+.dynamic-http-upload-response {
+  width: min(640px, 70vw);
+  max-height: 50vh;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-radius: 6px;
+  background: var(--vscode-textCodeBlock-background);
+  color: var(--vscode-editor-foreground);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 12px;
+}

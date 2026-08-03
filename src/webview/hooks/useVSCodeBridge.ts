@@ -47,7 +47,13 @@ export interface HttpRequestOptions {
   /** 如果提供，则走 multipart/form-data（此时 body 被忽略） */
   multipart?: {
     fields?: Record<string, string>;
-    files?: Array<{ field: string; path: string; filename?: string; contentType?: string }>;
+    files?: Array<{
+      field: string;
+      path?: string;
+      contentBase64?: string;
+      filename?: string;
+      contentType?: string;
+    }>;
   };
 }
 

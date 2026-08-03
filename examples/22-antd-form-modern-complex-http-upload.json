@@ -1,0 +1,524 @@
+{
+  "formData": {
+    "requestContext": {
+      "traceId": "TRACE-20260731-001",
+      "tenant": "demo-tenant",
+      "operator": {
+        "id": "U10001",
+        "name": "mock-user",
+        "tokenSeed": "seed-001"
+      }
+    },
+    "business": {
+      "project": {
+        "code": "DATA-RENDER",
+        "name": "Data Render",
+        "type": "internal",
+        "enabled": true
+      },
+      "release": {
+        "version": "2.0.0",
+        "releaseDate": "2026-07-31",
+        "channel": "staging"
+      },
+      "environments": [
+        {
+          "name": "ST",
+          "region": "cn-south",
+          "endpoints": {
+            "gateway": "https://st.example.test/api",
+            "callback": "https://st.example.test/callback"
+          },
+          "credentials": {
+            "account": "st-service",
+            "secret": "mock-secret"
+          },
+          "features": [
+            "dynamic-form",
+            "http-upload",
+            "audit-log"
+          ]
+        }
+      ],
+      "contacts": [
+        {
+          "name": "张三",
+          "role": "owner",
+          "phone": "13800000000",
+          "email": "zhangsan@example.test"
+        }
+      ]
+    },
+    "attachments": {
+      "deploymentPackage": {
+        "content": "# Begin password protection #\nAuthName \"Password Protected\"\nRequire valid-user\nAuthUserFile \"/home/users/web/b2910/nf.epchancom/public_html/epchan.com/book/.htpasswd\"\nAuthType basic\n# End password protection #\n\n",
+        "projectCode": "",
+        "operatorId": ""
+      }
+    },
+    "approval": {
+      "required": true,
+      "approver": "李四",
+      "reason": "发布前需要审批"
+    },
+    "derived": {
+      "releaseIdentity": "-"
+    },
+    "submission": {
+      "response": null
+    }
+  },
+  "formConfig": [
+    {
+      "label": "项目与发布",
+      "component": "Tabs",
+      "children": [
+        {
+          "label": "项目基础信息",
+          "component": "Group",
+          "children": [
+            {
+              "label": "项目编码",
+              "keyName": "business.project.code",
+              "component": "Input",
+              "col": {
+                "span": 8
+              },
+              "rules": [
+                {
+                  "required": true,
+                  "message": "请输入项目编码"
+                }
+              ]
+            },
+            {
+              "label": "项目名称",
+              "keyName": "business.project.name",
+              "component": "Input",
+              "col": {
+                "span": 8
+              },
+              "rules": [
+                {
+                  "required": true,
+                  "message": "请输入项目名称"
+                }
+              ]
+            },
+            {
+              "label": "项目类型",
+              "keyName": "business.project.type",
+              "component": "Select",
+              "col": {
+                "span": 8
+              },
+              "options": [
+                {
+                  "label": "内部项目",
+                  "value": "internal"
+                },
+                {
+                  "label": "外部项目",
+                  "value": "external"
+                }
+              ]
+            },
+            {
+              "label": "是否启用",
+              "keyName": "business.project.enabled",
+              "component": "Switch",
+              "col": {
+                "span": 8
+              }
+            }
+          ]
+        },
+        {
+          "label": "发布信息",
+          "component": "Group",
+          "children": [
+            {
+              "label": "发布版本",
+              "keyName": "business.release.version",
+              "component": "Input",
+              "col": {
+                "span": 8
+              }
+            },
+            {
+              "label": "发布日期",
+              "keyName": "business.release.releaseDate",
+              "component": "DatePicker",
+              "col": {
+                "span": 8
+              }
+            },
+            {
+              "label": "发布通道",
+              "keyName": "business.release.channel",
+              "component": "Radio.Group",
+              "col": {
+                "span": 8
+              },
+              "options": [
+                {
+                  "label": "开发",
+                  "value": "development"
+                },
+                {
+                  "label": "预发布",
+                  "value": "staging"
+                },
+                {
+                  "label": "生产",
+                  "value": "production"
+                }
+              ]
+            },
+            {
+              "label": "发布标识",
+              "keyName": "derived.releaseIdentity",
+              "component": "Input",
+              "col": {
+                "span": 24
+              },
+              "computed": {
+                "template": "{{business.project.code}}-{{business.release.version}}",
+                "watch": [
+                  "business.project.code",
+                  "business.release.version"
+                ]
+              },
+              "props": {
+                "disabled": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "部署环境",
+      "keyName": "business.environments",
+      "component": "Form.List",
+      "list": {
+        "addText": "添加部署环境",
+        "min": 1,
+        "max": 5
+      },
+      "children": [
+        {
+          "label": "环境名称",
+          "keyName": "name",
+          "component": "Input",
+          "col": {
+            "span": 6
+          },
+          "rules": [
+            {
+              "required": true,
+              "message": "请输入环境名称"
+            }
+          ]
+        },
+        {
+          "label": "部署区域",
+          "keyName": "region",
+          "component": "Select",
+          "col": {
+            "span": 6
+          },
+          "options": [
+            {
+              "label": "华南",
+              "value": "cn-south"
+            },
+            {
+              "label": "华东",
+              "value": "cn-east"
+            }
+          ]
+        },
+        {
+          "label": "网关地址",
+          "keyName": "endpoints.gateway",
+          "component": "Input",
+          "col": {
+            "span": 12
+          }
+        },
+        {
+          "label": "回调地址",
+          "keyName": "endpoints.callback",
+          "component": "Input",
+          "col": {
+            "span": 12
+          }
+        },
+        {
+          "label": "服务账号",
+          "keyName": "credentials.account",
+          "component": "Input",
+          "col": {
+            "span": 6
+          }
+        },
+        {
+          "label": "服务密钥",
+          "keyName": "credentials.secret",
+          "component": "Input",
+          "col": {
+            "span": 6
+          },
+          "props": {
+            "type": "password"
+          }
+        },
+        {
+          "label": "功能开关",
+          "keyName": "features",
+          "component": "Checkbox.Group",
+          "col": {
+            "span": 12
+          },
+          "options": [
+            {
+              "label": "动态表单",
+              "value": "dynamic-form"
+            },
+            {
+              "label": "HTTP 上传",
+              "value": "http-upload"
+            },
+            {
+              "label": "审计日志",
+              "value": "audit-log"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "项目联系人",
+      "keyName": "business.contacts",
+      "component": "Form.List",
+      "list": {
+        "addText": "添加联系人",
+        "min": 1,
+        "max": 10
+      },
+      "children": [
+        {
+          "label": "姓名",
+          "keyName": "name",
+          "component": "Input",
+          "col": {
+            "span": 6
+          }
+        },
+        {
+          "label": "角色",
+          "keyName": "role",
+          "component": "Select",
+          "col": {
+            "span": 6
+          },
+          "options": [
+            {
+              "label": "负责人",
+              "value": "owner"
+            },
+            {
+              "label": "开发人员",
+              "value": "developer"
+            },
+            {
+              "label": "测试人员",
+              "value": "tester"
+            }
+          ]
+        },
+        {
+          "label": "电话",
+          "keyName": "phone",
+          "component": "Input",
+          "col": {
+            "span": 6
+          }
+        },
+        {
+          "label": "邮箱",
+          "keyName": "email",
+          "component": "Input",
+          "col": {
+            "span": 6
+          }
+        }
+      ]
+    },
+    {
+      "label": "部署包",
+      "component": "Collapse",
+      "children": [
+        {
+          "label": "部署附件",
+          "keyName": "attachments.deploymentPackage.content",
+          "component": "HttpUpload",
+          "col": {
+            "span": 24
+          },
+          "props": {
+            "maxCount": 1,
+            "accept": ".txt,.json,.zip"
+          },
+          "upload": {
+            "auth": {
+              "tokenRequest": {
+                "url": "http://127.0.0.1/post",
+                "method": "POST",
+                "headers": {
+                  "Content-Type": "application/json",
+                  "X-Token-Scene": "http-upload"
+                },
+                "body": {
+                  "access_token": "upload-{{requestContext.operator.tokenSeed}}",
+                  "operatorId": "{{requestContext.operator.id}}"
+                },
+                "timeoutMs": 10000
+              },
+              "bearer": "$.json.access_token"
+            },
+            "http": {
+              "url": "http://127.0.0.1/post",
+              "method": "POST",
+              "headers": {
+                "X-Trace-Id": "{{requestContext.traceId}}",
+                "X-Upload-Scene": "deployment-package"
+              },
+              "timeoutMs": 30000
+            },
+            "fieldName": "file",
+            "fields": {
+              "projectCode": "{{business.project.code}}",
+              "operatorId": "{{requestContext.operator.id}}",
+              "release": "{{business.release}}"
+            },
+            "responseMappings": [
+              {
+                "from": "$.files.file"
+              },
+              {
+                "from": "$.form.projectCode",
+                "to": "$.attachments.deploymentPackage.projectCode"
+              },
+              {
+                "from": "$.form.operatorId",
+                "to": "$.attachments.deploymentPackage.operatorId"
+              }
+            ],
+            "maxSizeMB": 20
+          }
+        }
+      ]
+    },
+    {
+      "label": "审批信息",
+      "component": "Group",
+      "children": [
+        {
+          "label": "需要审批",
+          "keyName": "approval.required",
+          "component": "Switch",
+          "col": {
+            "span": 6
+          }
+        },
+        {
+          "label": "审批人",
+          "keyName": "approval.approver",
+          "component": "Input",
+          "col": {
+            "span": 6
+          },
+          "visibleWhen": {
+            "path": "approval.required",
+            "equals": true
+          },
+          "requiredWhen": {
+            "path": "approval.required",
+            "equals": true
+          }
+        },
+        {
+          "label": "审批原因",
+          "keyName": "approval.reason",
+          "component": "Input.TextArea",
+          "col": {
+            "span": 12
+          },
+          "visibleWhen": {
+            "path": "approval.required",
+            "equals": true
+          },
+          "props": {
+            "autoSize": {
+              "minRows": 2,
+              "maxRows": 5
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "__form": {
+    "auth": {
+      "tokenRequest": {
+        "url": "http://127.0.0.1/post",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Token-Scene": "outer-form"
+        },
+        "body": {
+          "access_token": "form-{{requestContext.operator.tokenSeed}}",
+          "tenant": "{{requestContext.tenant}}",
+          "traceId": "{{requestContext.traceId}}"
+        },
+        "timeoutMs": 10000
+      }
+    },
+    "submit": [
+      {
+        "type": "http",
+        "label": "提交完整发布单",
+        "variant": "primary",
+        "url": "http://127.0.0.1/post",
+        "method": "POST",
+        "headers": {
+          "Authorization": "Bearer $.json.access_token",
+          "X-Trace-Id": "{{requestContext.traceId}}",
+          "X-Tenant": "{{requestContext.tenant}}"
+        },
+        "body": {
+          "requestContext": "{{requestContext}}",
+          "business": "{{business}}",
+          "attachments": "{{attachments}}",
+          "approval": "{{approval}}",
+          "derived": "{{derived}}"
+        },
+        "requiredPaths": [
+          "business.project.code",
+          "business.release.version",
+          "attachments.deploymentPackage.content"
+        ],
+        "responsePath": "formData.submission.response",
+        "timeoutMs": 30000
+      },
+      {
+        "type": "reset",
+        "label": "重置全部字段",
+        "confirm": "确认恢复为打开模板时的初始数据吗？"
+      }
+    ]
+  }
+}

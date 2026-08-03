@@ -17,14 +17,14 @@ describe('formConfigTypes', () => {
       expect(getFormData(data)).toEqual({ name: 'Alice', age: 18 });
     });
 
-    it('falls back to root-level fields (minus meta keys) when no formData', () => {
+    it('does not fall back to root-level fields when formData is missing', () => {
       const data = {
         __form: { submit: { url: '/x' } },
         formConfig: [{ keyName: 'name', component: 'Input' }],
         name: 'Alice',
         age: 18,
       };
-      expect(getFormData(data)).toEqual({ name: 'Alice', age: 18 });
+      expect(getFormData(data)).toEqual({});
     });
 
     it('returns empty object for null/array/primitive', () => {
@@ -34,14 +34,14 @@ describe('formConfigTypes', () => {
       expect(getFormData('str')).toEqual({});
     });
 
-    it('returns root-level fields when no meta keys present', () => {
+    it('does not treat an ordinary object as modern formData', () => {
       const data = { name: 'Bob', active: true };
-      expect(getFormData(data)).toEqual({ name: 'Bob', active: true });
+      expect(getFormData(data)).toEqual({});
     });
 
     it('formData takes priority over root-level values', () => {
       const data = {
-        name: 'RootName',
+        formConfig: [],
         formData: { name: 'FormDataName' },
       };
       expect(getFormData(data)).toEqual({ name: 'FormDataName' });
@@ -49,9 +49,15 @@ describe('formConfigTypes', () => {
   });
 
   describe('hasFormConfig', () => {
-    it('returns true when formConfig array is present', () => {
-      expect(hasFormConfig({ formConfig: [] })).toBe(true);
-      expect(hasFormConfig({ formConfig: [{ keyName: 'x', component: 'Input' }] })).toBe(true);
+    it('returns true only for the modern formConfig + formData root', () => {
+      expect(hasFormConfig({ formConfig: [], formData: {} })).toBe(true);
+      expect(hasFormConfig({
+        formConfig: [{ label: 'X', keyName: 'x', component: 'Input' }],
+        formData: { x: '' },
+        __form: { submit: [] },
+      })).toBe(true);
+      expect(hasFormConfig({ formConfig: [] })).toBe(false);
+      expect(hasFormConfig({ formConfig: [], formData: {}, legacy: true })).toBe(false);
     });
 
     it('returns false when formConfig is missing or not an array', () => {

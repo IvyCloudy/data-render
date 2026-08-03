@@ -68,7 +68,7 @@ describe('SubmitBar · interpolate', () => {
     expect(interpolate('{{name}}', withFormData)).toBe('FormDataName');
   });
 
-  it('works without formData (backward compat)', () => {
+  it('supports raw form-value objects used by field interpolation', () => {
     const noFormData = { name: 'Alice', age: 18 };
     expect(interpolate('{{name}}', noFormData)).toBe('Alice');
     expect(interpolate('{{age}}', noFormData)).toBe(18);
@@ -76,26 +76,23 @@ describe('SubmitBar · interpolate', () => {
 });
 
 describe('SubmitBar · buildSubmitBody', () => {
-  it('returns data minus __form/formConfig/formData by default', () => {
+  it('returns formData by default', () => {
     const data = {
-      [FORM_META_KEY]: { submit: { url: 'x' } },
+      [FORM_META_KEY]: { submit: [{ url: 'x' }] },
       [FORM_CONFIG_KEY]: [{ keyName: 'name', component: 'Input' }],
       [FORM_DATA_KEY]: { name: 'Alice' },
-      name: 'Alice',
-      age: 18,
-      nested: { x: 1 },
     };
-    expect(buildSubmitBody(data, { url: 'x' })).toEqual({ name: 'Alice', age: 18, nested: { x: 1 } });
+    expect(buildSubmitBody(data, { url: 'x' })).toEqual({ name: 'Alice' });
   });
 
-  it('returns data minus __form by default (legacy, no formData)', () => {
+  it('returns an empty object when modern formData is absent', () => {
     const data = {
       [FORM_META_KEY]: { submit: { url: 'x' } },
       name: 'Alice',
       age: 18,
       nested: { x: 1 },
     };
-    expect(buildSubmitBody(data, { url: 'x' })).toEqual({ name: 'Alice', age: 18, nested: { x: 1 } });
+    expect(buildSubmitBody(data, { url: 'x' })).toEqual({});
   });
 
   it('interpolates with formData scope', () => {
@@ -109,8 +106,7 @@ describe('SubmitBar · buildSubmitBody', () => {
 
   it('honors bodyPath with formData scope', () => {
     const data = {
-      nested: { x: 1 },
-      [FORM_DATA_KEY]: { name: 'FormDataName' },
+      [FORM_DATA_KEY]: { name: 'FormDataName', nested: { x: 1 } },
     };
     expect(buildSubmitBody(data, { url: 'x', bodyPath: 'nested' })).toEqual({ x: 1 });
   });
@@ -150,10 +146,9 @@ describe('SubmitBar · readSubmitConfig', () => {
     expect(readSubmitConfig([])).toBeNull();
   });
 
-  it('wraps a single submit object into an array', () => {
+  it('rejects a legacy single submit object', () => {
     const cfg = readSubmitConfig({ [FORM_META_KEY]: { submit: { url: 'http://a' } } });
-    expect(cfg).toHaveLength(1);
-    expect(cfg![0].url).toBe('http://a');
+    expect(cfg).toBeNull();
   });
 
   it('accepts an array and filters out invalid entries', () => {

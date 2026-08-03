@@ -7,7 +7,7 @@
 - **Tree**：可折叠树视图（基于 [@textea/json-viewer](https://github.com/TexteaInc/json-viewer)），支持 JSONPath 过滤
 - **Table**：对象数组自动生成表格；普通对象渲染 K/V 表；支持 CSV 导入/导出
 - **Form**：递归表单，自动识别 string / number / boolean / null / array 类型
-- **Ant Design Form**：基于 `formConfig` 配置的动态表单，19 种组件，多列布局、校验、HTTP 提交
+- **Ant Design Form**：现代 `formConfig + formData + __form` 协议，支持嵌套对象、对象数组、容器布局、字段级 HTTP 上传和整表提交
 - **Chart**：自动识别数值型数据，渲染 Bar / Line 图（基于 recharts）
 - **Card**：对象数组渲染为卡片流
 - **Composite**：混合型根对象自动拆分为多个区块
@@ -64,7 +64,9 @@ npm run build
 
 ## Ant Design 动态表单
 
-在 JSON 文件中声明 `formConfig` 数组和 `formData` 对象即可启用 Ant Design 动态表单渲染。
+AntD 动态表单只接受现代模板：根对象必须包含 `formConfig` 数组、`formData` 对象，并且只能额外包含可选的 `__form` 对象。根级业务字段、`keyValue`、缺少 `formData` 的历史模板以及单对象形式的 `__form.submit` 均不再兼容。
+
+完整配置指引见 [`docs/json2AntDForm配置指引.md`](docs/json2AntDForm配置指引.md)。
 
 ### 数据三层模型
 
@@ -80,7 +82,7 @@ npm run build
 
 **`formData`** 集中存放所有表单字段的值，`formConfig` 只描述 UI 渲染逻辑，`__form` 描述提交行为。三者职责清晰分离，消除了旧方案中 `keyValue` 与根级字段的双值冗余问题。
 
-> 向后兼容：如果 JSON 中没有 `formData` 字段，插件会从根级字段中剥离 `__form` / `formConfig` 后作为初始值，`keyValue` 也作为 fallback。
+`keyName` 支持 `user.address.city`、`orders[0].name` 等嵌套路径；重复对象数组使用 `Form.List`。
 
 ### 完整示例
 
@@ -155,6 +157,8 @@ npm run build
 | `props` | `Record<string, unknown>` | ❌ | 直接传递给组件的额外属性 |
 | `valuePropName` | `string` | ❌ | 值属性名，Switch 用 `"checked"`，Upload 用 `"fileList"` |
 | `dataSource` | `FormItemDataSource` | ❌ | 远程数据源配置，支持 HTTP 动态获取选项/值（见下方） |
+| `upload` | `FormUploadConfig` | `HttpUpload` 必填 | 字段级 multipart HTTP 上传与响应 JSONPath 映射 |
+| `children` | `FormConfigItem[]` | 容器必填 | `Group` / `Collapse` / `Tabs` / `Form.List` 的子字段 |
 
 ### 支持的组件类型
 
@@ -172,7 +176,10 @@ npm run build
 | `Checkbox.Group` | `<Checkbox.Group />` | `string[]` | 复选组 |
 | `Cascader` | `<Cascader />` | `string[]` | 级联选择 |
 | `TreeSelect` | `<TreeSelect />` | `string` | 树选择（treeData 通过 props 传入） |
-| `Upload` | `<Upload />` | `File[]` | 文件上传 |
+| `Upload` | `<Upload />` | 文件元数据数组 | 只更新 `formData`，不发起字段级 HTTP 请求 |
+| `HttpUpload` | `<Upload />` | 响应映射结果 | 选择文件后立即调用字段配置的 multipart HTTP 接口 |
+| `Form.List` | `<Form.List />` | 对象数组 | 动态增加、删除复杂对象行 |
+| `Group` / `Collapse` / `Tabs` | 容器 | - | 组织复杂表单布局 |
 | `Slider` | `<Slider />` | `number \| number[]` | 滑动条 |
 | `ColorPicker` | `<ColorPicker />` | `string` (hex) | 颜色选择器 |
 | `Rate` | `<Rate />` | `number` | 评分 |
@@ -188,7 +195,53 @@ npm run build
 
 **Tree** — 通过 `props.treeData` 传入树结构数据，默认 `valuePropName="checkedKeys"`，值为选中的 key 数组。
 
-**Upload** — `valuePropName="fileList"`，值类型为文件列表数组。
+**Upload** — 普通表单字段，选择结果以文件元数据数组写入 `formData`，不会独立调用 HTTP。
+
+**HttpUpload** — 使用 `upload.http` 配置字段级 HTTP 上传。文件通过 Webview 传给扩展进程构造 multipart 请求；成功后按照 `responseMappings` 的 JSONPath 写回 `formData`。文件行删除按钮左侧显示结果图标，悬浮可查看状态码、响应头、响应体和耗时。
+
+`HttpUpload` 可以通过 `upload.auth` 使用一套独立于外层表单的 Token 获取流程：
+
+- `upload.auth.tokenRequest`：上传前先调用的 Token 接口。
+- `upload.auth.bearer`：固定/表单插值 Token；配置了 `tokenRequest` 时也可以填写指向 Token 响应体的 JSONPath。
+- 得到的值会自动添加 `Bearer ` 前缀；如果 `upload.http.headers` 已显式配置 `Authorization`，则以显式 Header 为准。
+
+```json
+{
+  "label": "附件",
+  "keyName": "attachment.fileName",
+  "component": "HttpUpload",
+  "upload": {
+    "auth": {
+      "tokenRequest": {
+        "url": "http://127.0.0.1/post",
+        "method": "POST",
+        "body": {
+          "access_token": "upload-{{user.tokenSeed}}"
+        }
+      },
+      "bearer": "$.json.access_token"
+    },
+    "http": {
+      "url": "http://127.0.0.1/post",
+      "method": "POST",
+      "headers": {
+        "X-Upload-Scene": "attachment"
+      }
+    },
+    "fieldName": "file",
+    "fields": {
+      "operator": "{{user.name}}"
+    },
+    "responseMappings": [
+      { "from": "$.files.file" },
+      { "from": "$.form.operator", "to": "$.attachment.operator" }
+    ],
+    "maxSizeMB": 10
+  }
+}
+```
+
+完整复杂结构示例见 [`examples/22-antd-form-modern-complex-http-upload.json`](examples/22-antd-form-modern-complex-http-upload.json)。
 
 **Cascader / TreeSelect** — 通过 `options` 或 `props.treeData` 传入嵌套数据。
 

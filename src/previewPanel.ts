@@ -23,7 +23,13 @@ type InboundMessage =
       /** 如果提供，则走 multipart/form-data：text fields + 文件字段 */
       multipart?: {
         fields?: Record<string, string>;
-        files?: Array<{ field: string; path: string; filename?: string; contentType?: string }>;
+        files?: Array<{
+          field: string;
+          path?: string;
+          contentBase64?: string;
+          filename?: string;
+          contentType?: string;
+        }>;
       };
     };
 
@@ -239,11 +245,13 @@ export class PreviewPanel {
           fields: msg.multipart.fields,
           files: (msg.multipart.files || []).map((f) => ({
             ...f,
-            path: path.isAbsolute(f.path) ? f.path : path.resolve(baseDir, f.path),
+            path: f.path
+              ? (path.isAbsolute(f.path) ? f.path : path.resolve(baseDir, f.path))
+              : undefined,
           })),
         };
         console.log(`[HTTP Request] Multipart fields:`, normalized.fields);
-        console.log(`[HTTP Request] Multipart files:`, normalized.files.map(f => f.path));
+        console.log(`[HTTP Request] Multipart files:`, normalized.files.map(f => f.path ?? f.filename));
         const built = await buildMultipart(normalized);
         body = built.body;
         // 覆盖 content-type（带边界）
@@ -560,7 +568,13 @@ function stripJsoncComments(text: string): string {
 /** 构造 multipart/form-data body（纯 Buffer 拼接，无依赖） */
 async function buildMultipart(opts: {
   fields?: Record<string, string>;
-  files?: Array<{ field: string; path: string; filename?: string; contentType?: string }>;
+  files?: Array<{
+    field: string;
+    path?: string;
+    contentBase64?: string;
+    filename?: string;
+    contentType?: string;
+  }>;
 }): Promise<{ body: Buffer; contentType: string }> {
   const fs = await import('fs/promises');
   const path = await import('path');
@@ -578,9 +592,11 @@ async function buildMultipart(opts: {
   }
 
   for (const f of opts.files || []) {
-    if (!f?.path || !f?.field) continue;
-    const data = await fs.readFile(f.path);
-    const filename = f.filename || path.basename(f.path);
+    if (!f?.field || (!f.path && f.contentBase64 === undefined)) continue;
+    const data = f.contentBase64 !== undefined
+      ? Buffer.from(f.contentBase64, 'base64')
+      : await fs.readFile(f.path!);
+    const filename = f.filename || (f.path ? path.basename(f.path) : 'upload.bin');
     const ct = f.contentType || guessContentType(filename);
     parts.push(Buffer.from(
       `--${boundary}${CRLF}` +

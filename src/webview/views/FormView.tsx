@@ -3,11 +3,18 @@ import { ViewProps, setByPath, coerce, matchSearch, Highlight } from './viewUtil
 import { AntdFormView } from './AntdFormView';
 import { useVSCodeBridge } from '../hooks/useVSCodeBridge';
 import { SubmitBar } from './SubmitBar';
-import { FORM_META_KEY, FORM_CONFIG_KEY, FORM_DATA_KEY, hasFormConfig as checkFormConfig } from './formConfigTypes';
+import {
+  FORM_META_KEY,
+  FORM_CONFIG_KEY,
+  FORM_DATA_KEY,
+  isDynamicFormDocument,
+  validateDynamicFormDocument,
+} from './formConfigTypes';
+import { Alert } from 'antd';
 import { readSubmitConfig } from './SubmitBar';
 
 function hasFormConfig(data: unknown): boolean {
-  return checkFormConfig(data);
+  return isDynamicFormDocument(data);
 }
 
 export const FormView: React.FC<ViewProps> = ({ data, search, onChange }) => {
@@ -27,8 +34,21 @@ export const FormView: React.FC<ViewProps> = ({ data, search, onChange }) => {
     snapshotRef.current = undefined;
   }
 
-  if (hasFormConfig(data)) {
+  if (isDynamicFormDocument(data)) {
     return <AntdFormView data={data} onChange={onChange} />;
+  }
+
+  if (data && typeof data === 'object' && !Array.isArray(data)
+    && (FORM_CONFIG_KEY in data || FORM_DATA_KEY in data || FORM_META_KEY in data)) {
+    const validation = validateDynamicFormDocument(data);
+    return (
+      <Alert
+        type="error"
+        showIcon
+        message="动态表单模板不可用"
+        description={validation.errors.join('\n')}
+      />
+    );
   }
 
   if (data === null || typeof data !== 'object') {

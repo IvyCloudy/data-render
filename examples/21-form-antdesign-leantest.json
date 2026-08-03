@@ -1,5 +1,5 @@
 {
-  "testTaskNo": "TT2020020001",
+  "formData":{"testTaskNo": "TT2020020001",
   "subTestTaskId": "1",
   "testPhaseId": "1",
   "summary": "缺陷摘要06121516",
@@ -32,7 +32,7 @@
   "techContent": "",
   "g01Category": [
     ""
-  ],
+  ]},
   "__form": {
     "submit": [
       {
@@ -316,18 +316,6 @@
       },
       "props": {
         "placeholder": "发现轮次"
-      }
-    },
-    {
-      "label": "发现活动",
-      "keyName": "foundActivity",
-      "component": "Input",
-      "defaultValue": "",
-      "col": {
-        "span": 12
-      },
-      "props": {
-        "placeholder": "发现活动(试运行、测试需求评审、性能测试执行、安全测试执行、开发自测、运行、精准测试、功能点估算审核、测试总结报告评审、总体设计评审、ST测试执行、测试案例评审、自动化测试、代码检视、需求评审、测试计划评审、移植测试、投产验证、详细设计评审、探索性测试、ST回归测试、UAT测试执行)"
       }
     },
     {
