@@ -197,7 +197,7 @@ AntD 动态表单只接受现代模板：根对象必须包含 `formConfig` 数�
 
 **Upload** — 普通表单字段，选择结果以文件元数据数组写入 `formData`，不会独立调用 HTTP。
 
-**HttpUpload** — 使用 `upload.http` 配置字段级 HTTP 上传。文件通过 Webview 传给扩展进程构造 multipart 请求；成功后按照 `responseMappings` 的 JSONPath 写回 `formData`。文件行删除按钮左侧显示结果图标，悬浮可查看状态码、响应头、响应体和耗时。
+**HttpUpload** — 使用 `upload.http` 配置字段级 HTTP 上传。文件通过 Webview 传给扩展进程构造 multipart 请求；成功后按照 `responseMappings` 的 JSONPath 写回 `formData`。映射配置 `"mode": "append"` 时，会将每个文件的结果按选择顺序保存到目标 JSON 数组，删除文件只移除对应数组元素；默认 `replace` 保持原有覆盖行为。文件行删除按钮左侧显示结果图标，悬浮可查看状态码、响应头、响应体和耗时。
 
 `HttpUpload` 可以通过 `upload.auth` 使用一套独立于外层表单的 Token 获取流程：
 

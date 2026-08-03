@@ -82,6 +82,11 @@ export interface FormUploadResponseMapping {
    */
   to?: string;
   all?: boolean;
+  /**
+   * "replace" keeps the legacy behavior. "append" stores one mapped value
+   * per uploaded file in an array, preserving file selection order.
+   */
+  mode?: 'replace' | 'append';
 }
 
 export interface FormUploadConfig {
@@ -254,6 +259,14 @@ export function validateDynamicFormDocument(value: unknown): TemplateValidationR
           item.upload.responseMappings.forEach((mapping, mappingIndex) => {
             if (!mapping || typeof mapping.from !== 'string' || !mapping.from.startsWith('$')) {
               errors.push(`${itemPath}.upload.responseMappings[${mappingIndex}].from 必须是以 $ 开头的 JSONPath。`);
+            }
+            if (mapping?.to !== undefined && typeof mapping.to !== 'string') {
+              errors.push(`${itemPath}.upload.responseMappings[${mappingIndex}].to 必须是字符串。`);
+            }
+            if (mapping?.mode !== undefined
+              && mapping.mode !== 'replace'
+              && mapping.mode !== 'append') {
+              errors.push(`${itemPath}.upload.responseMappings[${mappingIndex}].mode 只能是 replace 或 append。`);
             }
           });
         }

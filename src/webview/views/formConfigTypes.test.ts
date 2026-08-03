@@ -5,6 +5,7 @@ import {
   FORM_DATA_KEY,
   FORM_CONFIG_KEY,
   FORM_META_KEY,
+  validateDynamicFormDocument,
 } from './formConfigTypes';
 
 describe('formConfigTypes', () => {
@@ -73,6 +74,26 @@ describe('formConfigTypes', () => {
       expect(FORM_DATA_KEY).toBe('formData');
       expect(FORM_CONFIG_KEY).toBe('formConfig');
       expect(FORM_META_KEY).toBe('__form');
+    });
+  });
+
+  describe('HttpUpload response mappings', () => {
+    const document = (mode: string) => ({
+      formConfig: [{
+        label: 'Attachments',
+        keyName: 'attachments',
+        component: 'HttpUpload',
+        upload: {
+          http: { url: '/upload' },
+          responseMappings: [{ from: '$.data', mode }],
+        },
+      }],
+      formData: { attachments: [] },
+    });
+
+    it('accepts append mode and rejects unknown modes', () => {
+      expect(validateDynamicFormDocument(document('append')).valid).toBe(true);
+      expect(validateDynamicFormDocument(document('invalid')).errors.join('\n')).toMatch(/replace 或 append/);
     });
   });
 });

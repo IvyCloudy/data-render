@@ -60,6 +60,7 @@ import {
   updateFormData,
   validateDynamicFormDocument,
 } from './formConfigTypes';
+import { collectUploadMappingValues, type UploadMappingResult } from './uploadResults';
 
 interface Props {
   data: DynamicFormDocument;
@@ -198,6 +199,10 @@ const DynamicField: React.FC<{
   const [searchText, setSearchText] = useState('');
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
   const [uploadError, setUploadError] = useState<string>();
+  const uploadResultSequence = useRef(0);
+  const uploadMappingResults = useRef(new Map<string, UploadMappingResult>());
+  const uploadMappingBaseValues = useRef(new Map<number, unknown[]>());
+  const removedUploadUids = useRef(new Set<string>());
   const values = Form.useWatch((current) => current, form) ?? form.getFieldsValue(true);
   const Component = COMPONENTS[item.component];
   const dataSource = useDataSource(
@@ -298,11 +303,31 @@ const DynamicField: React.FC<{
       if (target.startsWith('$.')) return parsePathExpr(target.slice(2));
       return namePath(target, absolutePrefix);
     };
-    const applyResponse = (body: unknown) => {
-      for (const mapping of upload?.responseMappings ?? []) {
+    const appendValues = (mappingIndex: number): unknown[] => [
+      ...(uploadMappingBaseValues.current.get(mappingIndex) ?? []),
+      ...collectUploadMappingValues(uploadMappingResults.current.values(), mappingIndex),
+    ];
+    const applyResponse = (body: unknown, uid: string, order: number) => {
+      const mappings = upload?.responseMappings ?? [];
+      const mappedValues = mappings.map((mapping) => {
         const matches = jsonPath(body, mapping.from);
         if (!matches.length) throw new Error(`响应中未找到 ${mapping.from}`);
-        form.setFieldValue(mappingTarget(mapping.to), mapping.all ? matches : matches[0]);
+        return mapping.all ? matches : matches[0];
+      });
+      for (const [mappingIndex, mapping] of mappings.entries()) {
+        if (mapping.mode !== 'append' || uploadMappingBaseValues.current.has(mappingIndex)) continue;
+        const currentValue = form.getFieldValue(mappingTarget(mapping.to));
+        if (currentValue !== undefined && !Array.isArray(currentValue)) {
+          throw new Error(`映射目标 ${mapping.to ?? item.keyName} 在 append 模式下必须是数组`);
+        }
+        uploadMappingBaseValues.current.set(mappingIndex, [...(currentValue ?? [])]);
+      }
+      uploadMappingResults.current.set(uid, { uid, order, values: mappedValues });
+      for (const [mappingIndex, mapping] of mappings.entries()) {
+        form.setFieldValue(
+          mappingTarget(mapping.to),
+          mapping.mode === 'append' ? appendValues(mappingIndex) : mappedValues[mappingIndex],
+        );
       }
       onFormMutated();
     };
@@ -319,6 +344,8 @@ const DynamicField: React.FC<{
             percent: 0,
             originFileObj: file as any,
           };
+          const uploadOrder = uploadResultSequence.current++;
+          removedUploadUids.current.delete(String(uploadFile.uid));
           setUploadError(undefined);
           setUploadFiles((current) => [
             ...current.filter((entry) => entry.uid !== uploadFile.uid),
@@ -386,7 +413,11 @@ const DynamicField: React.FC<{
             if (!response.ok) {
               throw new Error(response.error ?? `HTTP ${response.status ?? '请求失败'}`);
             }
-            applyResponse(response.body);
+            if (removedUploadUids.current.has(String(uploadFile.uid))) {
+              options.onSuccess?.(response.body);
+              return;
+            }
+            applyResponse(response.body, String(uploadFile.uid), uploadOrder);
             setUploadFiles((current) => current.map((entry) => (
               entry.uid === uploadFile.uid
                 ? { ...entry, status: 'done', percent: 100, response }
@@ -457,9 +488,14 @@ const DynamicField: React.FC<{
           )}
           onRemove={(file) => {
             setUploadFiles((current) => current.filter((entry) => entry.uid !== file.uid));
+            removedUploadUids.current.add(String(file.uid));
             if (upload && upload.clearOnRemove !== false) {
-              for (const mapping of upload.responseMappings) {
-                form.setFieldValue(mappingTarget(mapping.to), undefined);
+              uploadMappingResults.current.delete(String(file.uid));
+              for (const [mappingIndex, mapping] of upload.responseMappings.entries()) {
+                form.setFieldValue(
+                  mappingTarget(mapping.to),
+                  mapping.mode === 'append' ? appendValues(mappingIndex) : undefined,
+                );
               }
               onFormMutated();
             }

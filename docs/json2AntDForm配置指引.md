@@ -335,9 +335,36 @@
 - `to` 以 `$.` 开头时从 `formData` 根写入。
 - `Form.List` 内普通 `to` 相对于当前行。
 - `all: true` 保存全部匹配，否则保存第一项。
+- `mode: "append"` 为每个上传文件保存一个数组元素，并按文件选择顺序排列；默认 `replace` 保持覆盖行为。
 - 任意映射无匹配时上传显示失败。
 
-上传完成后，删除按钮左侧显示结果图标；悬浮可查看完整 HTTP 响应。
+上传完成后，删除按钮左侧显示结果图标；悬浮可查看完整 HTTP 响应。删除文件时，`append` 模式只移除该文件对应的数组元素。
+
+多文件接口若每次返回 `{ "data": { "url": "...", "id": "..." } }`，可保存为对象数组：
+
+```json
+{
+  "label": "附件",
+  "keyName": "attachments",
+  "component": "HttpUpload",
+  "props": { "multiple": true },
+  "upload": {
+    "http": { "url": "https://example.com/upload", "method": "POST" },
+    "responseMappings": [
+      { "from": "$.data", "mode": "append" }
+    ]
+  }
+}
+```
+
+此时 `formData.attachments` 应初始化为 `[]`，上传后形如：
+
+```json
+[
+  { "url": "https://example.com/a.pdf", "id": "file-a" },
+  { "url": "https://example.com/b.pdf", "id": "file-b" }
+]
+```
 
 ## 14. HttpUpload 独立 Token
 
