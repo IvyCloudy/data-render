@@ -770,13 +770,14 @@ export const AntdFormView: React.FC<Props> = ({ data, onChange }) => {
         />
       )}
       <Form
-        form={form}
-        layout="horizontal"
-        labelCol={{ flex: '0 0 110px' }}
-        wrapperCol={{ flex: 1 }}
-        initialValues={initialValues}
-        onValuesChange={onValuesChange}
-        className="dynamic-form-content"
+          form={form}
+          layout="horizontal"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          labelWrap
+          initialValues={initialValues}
+          onValuesChange={onValuesChange}
+          className="dynamic-form-content"
       >
         <ConfigRenderer
           items={data.formConfig}
